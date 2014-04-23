@@ -1,0 +1,72 @@
+There are configure scripts in this directory to generate the header files
+used by the jemalloc library.
+
+These scripts are named conf_<HOST_TYPE>.sh, where HOST_TYPE is one of
+aarch64, arm, mips, x86, x86_64.
+
+In order to build generate the header files for each supported HOST_TYPE,
+follow these steps:
+
+- source build/envsetup.sh
+- lunch <TARGET>
+- mmma -jXX bionic
+- cd external/jemalloc
+- autoconf
+- <Modify the configure script>
+- android/conf_<HOST_TYPE>.sh
+
+Follow these instructions to modify the configure script before running
+any of the conf_<HOST_TYPE>.sh scripts.
+
+In the code that looks similar to this:
+
+case "${host}" in
+  *-*-darwin*)
+
+Modify it to be:
+
+case "${host}" in
+  *android*)
+    CFLAGS="$CFLAGS"
+    CPPFLAGS="$CPPFLAGS -D_GNU_SOURCE"
+    abi="elf"
+    force_tls="0"
+    enable_tls="0"
+    $as_echo "#define JEMALLOC_HAS_ALLOCA_H 1" >>confdefs.h
+
+    $as_echo "#define JEMALLOC_PURGE_MADVISE_DONTNEED  " >>confdefs.h
+
+    $as_echo "#define JEMALLOC_THREADED_INIT  " >>confdefs.h
+    ;;
+  *-*-darwin*)
+
+Then in the section that begins with:
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking STATIC_PAGE_SHIFT" >&5
+$as_echo_n "checking STATIC_PAGE_SHIFT... " >&6; }
+
+Comment out all of the script until after this part of the script:
+
+if test "x$je_cv_static_page_shift" != "xundefined"; then
+   cat >>confdefs.h <<_ACEOF
+#define STATIC_PAGE_SHIFT $je_cv_static_page_shift
+_ACEOF
+
+else
+   as_fn_error $? "cannot determine value for STATIC_PAGE_SHIFT" "$LINENO" 5
+fi
+
+Make sure all of the above is also commented out. Then add these lines into
+the configure script:
+
+# Hard coded to 12 for since the page size is 4096.
+cat >>confdefs.h <<_ACEOF
+#define STATIC_PAGE_SHIFT 12
+_ACEOF
+
+This assumes page size is 4096, if this changes, this code needs to be
+modified.
+
+This hard-coding of STATIC_PAGE_SHIFT is necessary because the current
+configure script attempts to build an executable to print out this value.
+For any cross-compilation of this code, this does not work.

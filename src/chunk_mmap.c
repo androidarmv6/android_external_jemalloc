@@ -2,6 +2,15 @@
 #include "jemalloc/internal/jemalloc_internal.h"
 
 /******************************************************************************/
+/* Function prototype for internal android bionic function. */
+
+#if defined(ANDROID)
+extern int __bionic_name_mem(void* addr, size_t len, const char* name);
+#endif
+
+/******************************************************************************/
+
+/******************************************************************************/
 /* Function prototypes for non-inline static functions. */
 
 static void	*pages_map(void *addr, size_t size);
@@ -50,6 +59,12 @@ pages_map(void *addr, size_t size)
 				abort();
 		}
 		ret = NULL;
+	}
+#endif
+#if defined(ANDROID)
+	if (ret != NULL) {
+		/* Name this memory as being used by libc */
+		__bionic_name_mem(ret, size, "libc_malloc");
 	}
 #endif
 	assert(ret == NULL || (addr == NULL && ret != addr)
