@@ -63,4 +63,8 @@ LOCAL_SRC_FILES := \
 	src/tsd.c \
 	src/util.c \
 
+# Simple Android implementation of mallinfo.
+LOCAL_SRC_FILES += \
+	android/src/je_mallinfo.c
+
 include $(BUILD_STATIC_LIBRARY)
