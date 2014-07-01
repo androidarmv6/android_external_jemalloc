@@ -1,60 +1,8 @@
 #ifndef JEMALLOC_INTERNAL_H
 #define	JEMALLOC_INTERNAL_H
-#include <math.h>
-#ifdef _WIN32
-#  include <windows.h>
-#  define ENOENT ERROR_PATH_NOT_FOUND
-#  define EINVAL ERROR_BAD_ARGUMENTS
-#  define EAGAIN ERROR_OUTOFMEMORY
-#  define EPERM  ERROR_WRITE_FAULT
-#  define EFAULT ERROR_INVALID_ADDRESS
-#  define ENOMEM ERROR_NOT_ENOUGH_MEMORY
-#  undef ERANGE
-#  define ERANGE ERROR_INVALID_DATA
-#else
-#  include <sys/param.h>
-#  include <sys/mman.h>
-#  include <sys/syscall.h>
-#  if !defined(SYS_write) && defined(__NR_write)
-#    define SYS_write __NR_write
-#  endif
-#  include <sys/uio.h>
-#  include <pthread.h>
-#  include <errno.h>
-#endif
-#include <sys/types.h>
-
-#include <limits.h>
-#ifndef SIZE_T_MAX
-#  define SIZE_T_MAX	SIZE_MAX
-#endif
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stddef.h>
-#ifndef offsetof
-#  define offsetof(type, member)	((size_t)&(((type *)NULL)->member))
-#endif
-#include <inttypes.h>
-#include <string.h>
-#include <strings.h>
-#include <ctype.h>
-#ifdef _MSC_VER
-#  include <io.h>
-typedef intptr_t ssize_t;
-#  define PATH_MAX 1024
-#  define STDERR_FILENO 2
-#  define __func__ __FUNCTION__
-/* Disable warnings about deprecated system functions */
-#  pragma warning(disable: 4996)
-#else
-#  include <unistd.h>
-#endif
-#include <fcntl.h>
 
 #include "jemalloc_internal_defs.h"
+#include "jemalloc/internal/jemalloc_internal_decls.h"
 
 #ifdef JEMALLOC_UTRACE
 #include <sys/ktrace.h>
@@ -117,13 +65,6 @@ static const bool config_prof_libgcc =
     ;
 static const bool config_prof_libunwind =
 #ifdef JEMALLOC_PROF_LIBUNWIND
-    true
-#else
-    false
-#endif
-    ;
-static const bool config_mremap =
-#ifdef JEMALLOC_MREMAP
     true
 #else
     false
@@ -274,6 +215,9 @@ static const bool config_ivsalloc =
 #  ifdef __tile__
 #    define LG_QUANTUM		4
 #  endif
+#  ifdef __le32__
+#    define LG_QUANTUM		4
+#  endif
 #  ifndef LG_QUANTUM
 #    error "No LG_QUANTUM definition for architecture; specify via CPPFLAGS"
 #  endif
@@ -352,9 +296,9 @@ static const bool config_ivsalloc =
 #    endif
 #  endif
 #  define VARIABLE_ARRAY(type, name, count) \
-	type *name = alloca(sizeof(type) * count)
+	type *name = alloca(sizeof(type) * (count))
 #else
-#  define VARIABLE_ARRAY(type, name, count) type name[count]
+#  define VARIABLE_ARRAY(type, name, count) type name[(count)]
 #endif
 
 #include "jemalloc/internal/valgrind.h"
@@ -534,7 +478,7 @@ s2u(size_t size)
 {
 
 	if (size <= SMALL_MAXCLASS)
-		return (small_bin2size(small_size2bin(size)));
+		return (small_s2u(size));
 	if (size <= arena_maxclass)
 		return (PAGE_CEILING(size));
 	return (CHUNK_CEILING(size));
@@ -577,7 +521,7 @@ sa2u(size_t size, size_t alignment)
 
 	if (usize <= arena_maxclass && alignment <= PAGE) {
 		if (usize <= SMALL_MAXCLASS)
-			return (small_bin2size(small_size2bin(usize)));
+			return (small_s2u(usize));
 		return (PAGE_CEILING(usize));
 	} else {
 		size_t run_size;
@@ -702,7 +646,7 @@ imalloct(size_t size, bool try_tcache, arena_t *arena)
 	if (size <= arena_maxclass)
 		return (arena_malloc(arena, size, false, try_tcache));
 	else
-		return (huge_malloc(size, false, huge_dss_prec_get(arena)));
+		return (huge_malloc(arena, size, false));
 }
 
 JEMALLOC_ALWAYS_INLINE void *
@@ -719,7 +663,7 @@ icalloct(size_t size, bool try_tcache, arena_t *arena)
 	if (size <= arena_maxclass)
 		return (arena_malloc(arena, size, true, try_tcache));
 	else
-		return (huge_malloc(size, true, huge_dss_prec_get(arena)));
+		return (huge_malloc(arena, size, true));
 }
 
 JEMALLOC_ALWAYS_INLINE void *
@@ -745,9 +689,9 @@ ipalloct(size_t usize, size_t alignment, bool zero, bool try_tcache,
 			ret = arena_palloc(choose_arena(arena), usize,
 			    alignment, zero);
 		} else if (alignment <= chunksize)
-			ret = huge_malloc(usize, zero, huge_dss_prec_get(arena));
+			ret = huge_malloc(arena, usize, zero);
 		else
-			ret = huge_palloc(usize, alignment, zero, huge_dss_prec_get(arena));
+			ret = huge_palloc(arena, usize, alignment, zero);
 	}
 
 	assert(ALIGNMENT_ADDR2BASE(ret, alignment) == ret);
@@ -829,7 +773,7 @@ idalloct(void *ptr, bool try_tcache)
 	if (chunk != ptr)
 		arena_dalloc(chunk, ptr, try_tcache);
 	else
-		huge_dalloc(ptr, true);
+		huge_dalloc(ptr);
 }
 
 JEMALLOC_ALWAYS_INLINE void
@@ -915,8 +859,8 @@ iralloct(void *ptr, size_t size, size_t extra, size_t alignment, bool zero,
 		    alignment, zero, try_tcache_alloc,
 		    try_tcache_dalloc));
 	} else {
-		return (huge_ralloc(ptr, oldsize, size, extra,
-		    alignment, zero, try_tcache_dalloc, huge_dss_prec_get(arena)));
+		return (huge_ralloc(arena, ptr, oldsize, size, extra,
+		    alignment, zero, try_tcache_dalloc));
 	}
 }
 

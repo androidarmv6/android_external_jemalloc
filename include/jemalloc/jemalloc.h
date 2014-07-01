@@ -24,7 +24,11 @@ extern "C" {
 #define	JEMALLOC_USABLE_SIZE_CONST const
 
 /* sizeof(void *) == 2^LG_SIZEOF_PTR. */
+#ifdef __LP64__
+#define	LG_SIZEOF_PTR 3
+#else
 #define	LG_SIZEOF_PTR 2
+#endif
 
 /*
  * Name mangling for public symbols is controlled by --with-mangling and
@@ -146,6 +150,9 @@ JEMALLOC_EXPORT void *	je_memalign(size_t alignment, size_t size)
 #ifdef JEMALLOC_OVERRIDE_VALLOC
 JEMALLOC_EXPORT void *	je_valloc(size_t size) JEMALLOC_ATTR(malloc);
 #endif
+
+typedef void *(chunk_alloc_t)(size_t, size_t, bool *, unsigned);
+typedef bool (chunk_dalloc_t)(void *, size_t, unsigned);
 
 /*
  * By default application code must explicitly refer to mangled symbol names,

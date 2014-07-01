@@ -29,7 +29,6 @@ LOCAL_ADDITIONAL_DEPENDENCIES := \
 
 LOCAL_CFLAGS := \
 	-std=gnu99 \
-	-D_GNU_SOURCE \
 	-D_REENTRANT \
 	-fvisibility=hidden \
 	-Wno-unused-parameter \

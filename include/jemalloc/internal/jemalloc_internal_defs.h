@@ -53,6 +53,16 @@
 /* #undef JE_FORCE_SYNC_COMPARE_AND_SWAP_8 */
 
 /*
+ * Defined if __builtin_clz() and __builtin_clzl() are available.
+ */
+#define JEMALLOC_HAVE_BUILTIN_CLZ 
+
+/*
+ * Defined if madvise(2) is available.
+ */
+#define JEMALLOC_HAVE_MADVISE 
+
+/*
  * Defined if OSSpin*() functions are available, as provided by Darwin, and
  * documented in the spinlock(3) manual page.
  */
@@ -149,15 +159,15 @@
  */
 #define JEMALLOC_MUNMAP 
 
-/*
- * If defined, use mremap(...MREMAP_FIXED...) for huge realloc().  This is
- * disabled by default because it is Linux-specific and it will cause virtual
- * memory map holes, much like munmap(2) does.
- */
-/* #undef JEMALLOC_MREMAP */
-
 /* TLS is used to map arenas and magazine caches to threads. */
 /* #undef JEMALLOC_TLS */
+
+/*
+ * ffs()/ffsl() functions to use for bitmapping.  Don't use these directly;
+ * instead, use jemalloc_ffs() or jemalloc_ffsl() from util.h.
+ */
+#define JEMALLOC_INTERNAL_FFSL __builtin_ffsl
+#define JEMALLOC_INTERNAL_FFS __builtin_ffs
 
 /*
  * JEMALLOC_IVSALLOC enables ivsalloc(), which verifies that pointers reside

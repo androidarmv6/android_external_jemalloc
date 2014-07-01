@@ -44,3 +44,6 @@ JEMALLOC_EXPORT void *	je_memalign(size_t alignment, size_t size)
 #ifdef JEMALLOC_OVERRIDE_VALLOC
 JEMALLOC_EXPORT void *	je_valloc(size_t size) JEMALLOC_ATTR(malloc);
 #endif
+
+typedef void *(chunk_alloc_t)(size_t, size_t, bool *, unsigned);
+typedef bool (chunk_dalloc_t)(void *, size_t, unsigned);
