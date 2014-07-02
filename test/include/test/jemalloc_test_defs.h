@@ -3,5 +3,7 @@
 #include "jemalloc/internal/jemalloc_internal_decls.h"
 
 /* For use by SFMT. */
-/* #undef HAVE_SSE2 */
+#if defined(__x86_64__)
+#define HAVE_SSE2 
+#endif
 /* #undef HAVE_ALTIVEC */
