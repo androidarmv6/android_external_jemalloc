@@ -4,7 +4,7 @@
 /******************************************************************************/
 /* Function prototype for internal android bionic function. */
 
-#if defined(ANDROID)
+#if defined(__ANDROID__)
 extern int __bionic_name_mem(void* addr, size_t len, const char* name);
 #endif
 
@@ -61,7 +61,7 @@ pages_map(void *addr, size_t size)
 		ret = NULL;
 	}
 #endif
-#if defined(ANDROID)
+#if defined(__ANDROID__)
 	if (ret != NULL) {
 		/* Name this memory as being used by libc */
 		__bionic_name_mem(ret, size, "libc_malloc");

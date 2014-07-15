@@ -82,7 +82,12 @@ extern "C" {
 
 #ifdef JEMALLOC_HAVE_ATTR
 #  define JEMALLOC_ATTR(s) __attribute__((s))
-#  define JEMALLOC_EXPORT JEMALLOC_ATTR(visibility("default"))
+#  if defined(__ANDROID__)
+/* None of these functions should be public on ANDROID. */
+#    define JEMALLOC_EXPORT
+#  else
+#    define JEMALLOC_EXPORT JEMALLOC_ATTR(visibility("default"))
+#  endif
 #  define JEMALLOC_ALIGNED(s) JEMALLOC_ATTR(aligned(s))
 #  define JEMALLOC_SECTION(s) JEMALLOC_ATTR(section(s))
 #  define JEMALLOC_NOINLINE JEMALLOC_ATTR(noinline)
