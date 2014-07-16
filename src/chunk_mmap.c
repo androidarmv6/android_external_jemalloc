@@ -2,10 +2,14 @@
 #include "jemalloc/internal/jemalloc_internal.h"
 
 /******************************************************************************/
-/* Function prototype for internal android bionic function. */
+/* Defines/includes needed for special android code. */
 
 #if defined(__ANDROID__)
-extern int __bionic_name_mem(void* addr, size_t len, const char* name);
+#include <sys/prctl.h>
+
+/* Definitions of prctl arguments to set a vma name in Android kernels. */
+#define ANDROID_PR_SET_VMA            0x53564d41
+#define ANDROID_PR_SET_VMA_ANON_NAME  0
 #endif
 
 /******************************************************************************/
@@ -64,7 +68,8 @@ pages_map(void *addr, size_t size)
 #if defined(__ANDROID__)
 	if (ret != NULL) {
 		/* Name this memory as being used by libc */
-		__bionic_name_mem(ret, size, "libc_malloc");
+		prctl(ANDROID_PR_SET_VMA, ANDROID_PR_SET_VMA_ANON_NAME, ret,
+		    size, "libc_malloc");
 	}
 #endif
 	assert(ret == NULL || (addr == NULL && ret != addr)
