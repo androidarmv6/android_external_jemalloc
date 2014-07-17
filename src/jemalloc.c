@@ -407,7 +407,12 @@ malloc_conf_init(void)
 			opt_tcache = false;
 	}
 
+#if defined(__ANDROID__)
+	/* Android only supports compiled options. */
+	for (i = 0; i < 1; i++) {
+#else
 	for (i = 0; i < 3; i++) {
+#endif
 		/* Get runtime configuration. */
 		switch (i) {
 		case 0:
