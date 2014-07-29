@@ -16,17 +16,38 @@
 
 #include "jemalloc/internal/jemalloc_internal.h"
 
-// This is a very simple implementation that only gives information for
-// the main thread's arena.
+extern unsigned narenas_auto;
+extern malloc_mutex_t arenas_lock;
+extern arena_t **arenas;
+
+#include <unistd.h>
+
+// This is an implementation that uses the same arena access pattern found
+// in the arena_stats_merge function from src/arena.c.
 struct mallinfo je_mallinfo() {
   struct mallinfo mi;
   memset(&mi, 0, sizeof(mi));
 
-  arena_t* arena = choose_arena(NULL);
-  if (arena != NULL) {
-    mi.arena = arena->stats.mapped;
-    mi.uordblks = arena->stats.allocated_large;
-    mi.fordblks = mi.arena - mi.ordblks;
+  malloc_mutex_lock(&arenas_lock);
+  for (unsigned i = 0; i < narenas_auto; i++) {
+    if (arenas[i] != NULL) {
+      malloc_mutex_lock(&arenas[i]->lock);
+      mi.hblkhd += arenas[i]->stats.mapped;
+      mi.uordblks += arenas[i]->stats.allocated_large;
+      mi.uordblks += arenas[i]->stats.allocated_huge;
+      malloc_mutex_unlock(&arenas[i]->lock);
+
+      for (unsigned j = 0; j < NBINS; j++) {
+        arena_bin_t* bin = &arenas[i]->bins[j];
+
+        malloc_mutex_lock(&bin->lock);
+        mi.uordblks += bin->stats.allocated;
+        malloc_mutex_unlock(&bin->lock);
+      }
+    }
   }
+  malloc_mutex_unlock(&arenas_lock);
+  mi.fordblks = mi.hblkhd - mi.uordblks;
+  mi.usmblks = mi.uordblks;
   return mi;
 }
