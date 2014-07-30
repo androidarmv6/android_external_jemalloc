@@ -20,8 +20,6 @@ extern unsigned narenas_auto;
 extern malloc_mutex_t arenas_lock;
 extern arena_t **arenas;
 
-#include <unistd.h>
-
 // This is an implementation that uses the same arena access pattern found
 // in the arena_stats_merge function from src/arena.c.
 struct mallinfo je_mallinfo() {
