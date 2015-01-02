@@ -20,7 +20,12 @@ common_cflags := \
 	-std=gnu99 \
 	-D_REENTRANT \
 	-fvisibility=hidden \
-	-Wno-unused-parameter \
+	-Wno-unused-parameter
+
+ifeq ($(TARGET_CPU_VARIANT),arm11)
+common_cflags += \
+	-DJE_FORCE_SYNC_COMPARE_AND_SWAP_4
+endif
 
 common_c_includes := \
 	$(LOCAL_PATH)/src \
